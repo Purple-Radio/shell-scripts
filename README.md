@@ -1,2 +1,4 @@
-# shell-scripts
-Simple shell scripts which run on our backend 
+# Shell Scripts
+
+Collection of short shell scripts that run on our radio backend and automate processes
+

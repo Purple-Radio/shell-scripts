@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# ──────────────────────────────────────────────────────────────────────
+# - Automatic Show Record Script for Purple Radio - Durham
+# - Designed for use with libretime radio management software
+# - Built against Libretime 3.0.0-alpha.8
+# - Dependencies: curl, jq, ffmpeg, sed, date
+# ──────────────────────────────────────────────────────────────────────
+
+# ──────────────────────────────────────────────────────────────────────
+# - Constants
+# ──────────────────────────────────────────────────────────────────────
+
+IGNORE=("Morning" "Daytime" "Evening")              # Skip recording
+DIRECTORY_ROOT="******************************"     # Record Directory
+MOUNT_POINT="******************************"  	    # Icecast Mount      
+
+touch "$DIRECTORY_ROOT"/record.log
+
+# ──────────────────────────────────────────────────────────────────────     
+# - Core Loop
+# ──────────────────────────────────────────────────────────────────────     
+
+while true; do
+
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+    # - Get Current Show Information    
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+
+    current_timestamp=$(date +"%s")
+    response=$(curl -s --request GET localhost/api/live-info)
+
+    if [ -z "$(echo $response | jq -r ".currentShow[]")" ]; then
+
+        # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+        # - Edge case dead air, sleep till next scheduled block
+        # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
+
+        echo $(date) Empty block encountered, sleeping till end >> "$DIRECTORY_ROOT"/record.log
+        target_time=$(date --date="$(echo $response | jq -r ".nextShow[].start_timestamp")" +"%s")
+        sleep $(($target_time - $current_timestamp))
+        continue
+
+    else
+
+        # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+        # - More information about show
+        # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
+
+        show_title=$(echo $response | jq -r ".currentShow[].name" | sed -e "s/&amp;/and/g" | sed -e "s/[^A-Za-z0-9._-]//g")
+        show_end=$(date --date="$(echo $response | jq -r ".currentShow[].end_timestamp")" +"%s")
+
+        # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+	    # - Check for ignored blocks, sleep till end
+        # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+
+        for i in "${ignore[@]}"; do
+            if [ "$show_title" == "$i" ]; then
+                echo $(date) Ignored block encountered, sleeping till end >> "$DIRECTORY_ROOT"/record.log
+                sleep $(($show_end - $current_timestamp))
+                continue 2
+            fi
+        done
+
+        # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
+        # Record show to file
+        # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+
+        mkdir "$DIRECTORY_ROOT"/"$show_title"
+        filename="$DIRECTORY_ROOT"/"$show_title"/$(echo $response | jq -r ".currentShow[].start_timestamp" | sed -e "s/[: ]/-/g").ogg
+
+        echo $(date) Valid block encountered, recording stream till end >> "$DIRECTORY_ROOT"/record.log
+
+        ffmpeg -i $MOUNT_POINT -t $(($show_end - $current_timestamp)) $filename
+        continue
+    fi
+done
+
