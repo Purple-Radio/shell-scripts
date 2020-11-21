@@ -11,9 +11,9 @@
 # - Constants
 # ──────────────────────────────────────────────────────────────────────
 
-IGNORE=("Morning" "Daytime" "Evening")              # Skip recording
-DIRECTORY_ROOT="******************************"     # Record Directory
-MOUNT_POINT="******************************"  	    # Icecast Mount      
+IGNORE=("Morning" "Daytime" "Evening")    	# Skip recording
+DIRECTORY_ROOT="***"			  	# Record Directory
+MOUNT_POINT="***"
 
 touch "$DIRECTORY_ROOT"/record.log
 
@@ -55,8 +55,9 @@ while true; do
         # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
         # - More information about show
         # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
-
-        show_title=$(echo $response | jq -r ".currentShow[].name" | sed -e "s/&amp;/and/g" | sed -e "s/[^A-Za-z0-9._-]//g")
+	
+        raw_title=$(echo $response | jq -r ".currentShow[].name" | sed -e "s/&amp;/and/g")
+        show_title=$(echo $raw_title | sed -e "s/[^A-Za-z0-9._-]//g")
         show_end=$(date --date="$(echo $response | jq -r ".currentShow[].end_timestamp")" +"%s")
 
         # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
@@ -77,11 +78,11 @@ while true; do
 
         mkdir "$DIRECTORY_ROOT"/"$show_title"
         ls "$DIRECTORY_ROOT"/"$show_title" -1t | tail -n +5 | xargs rm -f
-        filename="$DIRECTORY_ROOT"/"$show_title"/$(echo $response | jq -r ".currentShow[].start_timestamp" | sed -e "s/[: ]/-/g").ogg
+        filename="$DIRECTORY_ROOT"/"$show_title"/"$(date +%F-%H-%M)".ogg
 
         echo $(date) Valid block encountered, recording stream till end >> "$DIRECTORY_ROOT"/record.log
 
-        ffmpeg -hide_banner -loglevel panic -i $MOUNT_POINT -t $(($show_end - $current_timestamp)) $filename 
+        ffmpeg -y -hide_banner -loglevel panic -i $MOUNT_POINT -t $(($show_end - $current_timestamp)) -metadata title="Show Recording - $(date +%F)" -metadata author="$raw_title" $filename 
         continue
     fi
 done
