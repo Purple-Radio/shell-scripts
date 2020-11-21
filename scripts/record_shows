@@ -33,6 +33,15 @@ while true; do
     if [ -z "$(echo $response | jq -r ".currentShow[]")" ]; then
 
         # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+        # - Edge case no upcoming shows, sleep 1 hour and try again 
+        # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
+
+        if [ -z "$(echo $response | jq -r ".currentShow[]")" ]; then
+            sleep 3600
+            continue
+        fi
+
+        # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
         # - Edge case dead air, sleep till next scheduled block
         # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
 
@@ -67,6 +76,7 @@ while true; do
         # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
 
         mkdir "$DIRECTORY_ROOT"/"$show_title"
+        ls "$DIRECTORY_ROOT"/"$show_title" -1t | tail -n +5 | xargs rm -f
         filename="$DIRECTORY_ROOT"/"$show_title"/$(echo $response | jq -r ".currentShow[].start_timestamp" | sed -e "s/[: ]/-/g").ogg
 
         echo $(date) Valid block encountered, recording stream till end >> "$DIRECTORY_ROOT"/record.log
