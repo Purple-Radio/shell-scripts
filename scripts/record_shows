@@ -71,7 +71,7 @@ while true; do
 
         echo $(date) Valid block encountered, recording stream till end >> "$DIRECTORY_ROOT"/record.log
 
-        ffmpeg -i $MOUNT_POINT -t $(($show_end - $current_timestamp)) $filename
+        ffmpeg -hide_banner -loglevel panic -i $MOUNT_POINT -t $(($show_end - $current_timestamp)) $filename 
         continue
     fi
 done
