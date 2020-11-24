@@ -11,8 +11,8 @@
 # - Constants
 # ──────────────────────────────────────────────────────────────────────
 
-IGNORE=("Morning" "Daytime" "Evening")    	# Skip recording
-DIRECTORY_ROOT="***"			  	# Record Directory
+IGNORE=("Morning" "Daytime" "Evening" "NewsBulletin")  
+DIRECTORY_ROOT="***"		
 MOUNT_POINT="***"
 
 touch "$DIRECTORY_ROOT"/record.log
@@ -64,7 +64,7 @@ while true; do
 	    # - Check for ignored blocks, sleep till end
         # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
 
-        for i in "${ignore[@]}"; do
+        for i in "${IGNORE[@]}"; do
             if [ "$show_title" == "$i" ]; then
                 echo $(date) Ignored block encountered, sleeping till end >> "$DIRECTORY_ROOT"/record.log
                 sleep $(($show_end - $current_timestamp))
