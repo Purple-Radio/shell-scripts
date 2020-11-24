@@ -83,7 +83,8 @@ while true; do
         echo $(date) Valid block encountered, recording stream till end >> "$DIRECTORY_ROOT"/record.log
 
         ffmpeg -y -hide_banner -loglevel panic -i $MOUNT_POINT -t $(($show_end - $current_timestamp)) -metadata title="Show Recording - $(date +%F)" -metadata author="$raw_title" $filename 
-        continue
+        sleep 5
+	continue
     fi
 done
 
