@@ -1,0 +1,11 @@
+[Unit]
+Description=Automatic Libretime Show Recorder
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/record-shows
+Restart=always
+PIDFile=/tmp/recordshows.pid
+
+[Install]
+WantedBy=default.target
