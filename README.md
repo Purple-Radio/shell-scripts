@@ -28,7 +28,7 @@ chmod +x foo
 - If you want the script to run at boot, copy the corresponding systemd service and enable it
 
 ```bash
-cp /services/foo.service /etc/systemd/system/
+cp /services/foo.service /etc/systemd/system/.
 systemctl start foo.service
 systemctl enable foo.service
 ```
