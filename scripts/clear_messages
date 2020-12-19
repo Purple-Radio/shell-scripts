@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# ──────────────────────────────────────────────────────────────────────
+# - Automatic DJ Message Clear Script for Purple Radio - Durham
+# - Designed to refresh DJ message cache at show boundaries
+# - Dependencies: curl, jq, date
+# ──────────────────────────────────────────────────────────────────────
+
+# ──────────────────────────────────────────────────────────────────────
+# - Constants
+# ──────────────────────────────────────────────────────────────────────
+
+AUTH_TOKEN="DJ_API_AUTH"
+
+# ──────────────────────────────────────────────────────────────────────     
+# - Core Loop
+# ──────────────────────────────────────────────────────────────────────     
+
+while true; do
+
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+    # - Get schedule info   
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+
+    current_timestamp=$(date +"%s")
+    response=$(curl -s --request GET localhost/api/live-info)
+
+    next_start=$(date --date="$(echo $response | jq -r ".nextShow[].start_timestamp")" +"%s")
+    length=$(($next_start - $current_timestamp))
+	
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
+    # - Sleep till start of next show
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
+    
+    sleep $length
+
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
+    # - Clear DJ Messages
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
+
+    curl -X "DELETE" https://api.purpleradio.co.uk/purple-radio/deleteAllMessages/$AUTH_TOKEN
+
+done
+

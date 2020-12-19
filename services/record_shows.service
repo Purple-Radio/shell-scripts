@@ -3,7 +3,7 @@ Description=Automatic Libretime Show Recorder
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/record-shows
+ExecStart=/usr/bin/record_shows
 Restart=always
 PIDFile=/tmp/recordshows.pid
 

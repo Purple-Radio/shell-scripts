@@ -4,9 +4,10 @@ Collection of short shell scripts that run on our radio backend and automate pro
 
 ## Script Functions
 
-| Script       | Function                                                     |
-| ------------ | ------------------------------------------------------------ |
-| record_shows | Infinite loop that uses ffmpeg to record the icecast stream output during show blocks. An array of ignored show block titles can be defined (minus whitespace) to skip automated segments. The script uses libretimes API to sleep until the beginning of the next show block and limit system load, beware of edge case where script is sleeping and misses a last minute change to the schedule, best to change shows at least an hour in advance. |
+| Script         | Function                                                     |
+| -------------- | ------------------------------------------------------------ |
+| record_shows   | Infinite loop that uses ffmpeg to record the icecast stream output during show blocks. An array of ignored show block titles can be defined (minus whitespace) to skip automated segments. The script uses libretimes API to sleep until the beginning of the next show block and limit system load, beware of edge case where script is sleeping and misses a last minute change to the schedule, best to change shows at least an hour in advance. |
+| clear_messages | Infinite loop that queries the schedule API and sleeps till the next scheduled show start before clearing DJ messages. The script uses libretimes API to sleep until the beginning of the next show block and limit system load, beware of edge case where script is sleeping and misses a last minute change to the schedule, best to change shows at least an hour in advance. |
 
 ## Installation
 

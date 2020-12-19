@@ -1,0 +1,11 @@
+[Unit]
+Description=Automatic DJ Message Api Clearer
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/clear_messages
+Restart=always
+PIDFile=/tmp/clearmessages.pid
+
+[Install]
+WantedBy=default.target

@@ -36,7 +36,7 @@ while true; do
         # - Edge case no upcoming shows, sleep 1 hour and try again 
         # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
 
-        if [ -z "$(echo $response | jq -r ".currentShow[]")" ]; then
+        if [ -z "$(echo $response | jq -r ".nextShow[]")" ]; then
             sleep 3600
             continue
         fi
