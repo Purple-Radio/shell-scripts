@@ -1,0 +1,122 @@
+#!/bin/bash
+
+# ──────────────────────────────────────────────────────────────────────
+# - Automatic show recording script for Ladiocast
+# - Made for Purple Radio, Durham
+# - Dependencies: curl, jq, ffmpeg, sed, date
+# ──────────────────────────────────────────────────────────────────────
+
+# ──────────────────────────────────────────────────────────────────────
+# - Functions
+# ──────────────────────────────────────────────────────────────────────
+
+logMessage () {
+    printf "%s" "$(date)" >> "$logfile"
+    printf " '%s'" "$@" >> "$logfile"
+    printf "\n" >> "$logfile"
+}
+
+# ──────────────────────────────────────────────────────────────────────
+# - Variables
+# ──────────────────────────────────────────────────────────────────────
+
+directoryRoot="/sftp/recordings"
+mountPoint="http://radio.purpleradio.co.uk/stream"
+apiEndpoint="http://radio.purpleradio.co.uk/api/live-info-v2"
+
+mkdir -p "$directoryRoot"/logs
+logfile="$directoryRoot"/logs/latest.log
+touch "$logfile"
+
+# ──────────────────────────────────────────────────────────────────────
+# - Main event loop
+# ──────────────────────────────────────────────────────────────────────
+
+while true; do
+
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
+    # - Refresh information for new show
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
+
+    apiResponse=$(curl -s --request GET "$apiEndpoint")
+
+    showSource=$(echo $apiResponse | jq -r ".station.source_enabled")
+    showTitle=$(echo $apiResponse | jq -r ".shows.current.name")
+    
+    currentTime=$(date +"%s")
+    showEnd=$(date --date="$(echo $apiResponse | jq -r '.shows.current.ends')" +"%s")
+    let remainingTime=showEnd-currentTime
+
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+    # - Edge cases where gaps in schedule occur (dead air)
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+
+    if [ -z "$showTitle" ]; then
+        logMessage "$showTitle" "Dead air detected, sleeping 5 minutes"
+        sleep 300
+        continue
+    fi
+
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+    # - Edge case, show ends almost immediately (less than 5 minutes)
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+
+    if [ "$remainingTime" -lt 300 ]; then
+        logMessage "$showTitle" "Less than 5 minute show block detected, sleeping till end"
+        sleep "$remainingTime"
+        sleep 7
+        continue
+    fi
+
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+    # - Sanitise show title
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+
+    showTitle=$(echo "$showTitle" | sed -e "s/\&amp;/\&/g" | sed -e "s/\&\#039;/'/g")
+
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+    # - Start recording of this block
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+
+    mkdir -p "$directoryRoot"/"$showTitle"
+    newPath="$directoryRoot"/"$showTitle"/"$(date +%F\ %H:%M)".ogg
+    
+    logMessage "$showTitle" "Starting preliminary recording of this show block"
+
+    ffmpeg -y -hide_banner -loglevel panic -i $mountPoint -t $remainingTime -metadata title="Purple Radio Show Recording - $(date +%F)" -metadata author="$showTitle" "$newPath" & 
+    ffmpegPid=$!
+    
+    while [ "$remainingTime" -gt 300 ] && [ "$showSource" == "Scheduled" ]; do
+
+        # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+        # - Secondary loop, show is active but source is not yet live
+        # - Check for live show input every 5 minutes
+        # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
+        
+        sleep 300
+         
+        apiResponse=$(curl -s --request GET "$apiEndpoint")
+        showSource=$(echo $apiResponse | jq -r ".station.source_enabled")
+
+        currentTime=$(date +"%s")
+        let remainingTime=showEnd-currentTime
+
+    done
+
+    if [ "$showSource" == "Scheduled" ]; then
+        logMessage "$showTitle" "No live content detected, wiping recording"
+        kill "$ffmpegPID"
+        rm "$newPath"
+    else
+        logMessage "$showTitle" "Live content detected, saving recording"
+    fi
+
+    sleep "$remainingTime"
+
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
+    # - 7 second grace sleep into next block
+    # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
+
+    sleep 7
+
+done

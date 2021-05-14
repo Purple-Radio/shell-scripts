@@ -3,9 +3,9 @@ Description=Automatic Libretime Show Recorder
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/record_shows
+ExecStart=/usr/bin/show-recorder
 Restart=always
-PIDFile=/tmp/recordshows.pid
+PIDFile=/tmp/show-recorder.pid
 
 [Install]
 WantedBy=default.target

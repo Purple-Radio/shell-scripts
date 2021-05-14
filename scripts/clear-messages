@@ -7,10 +7,11 @@
 # ──────────────────────────────────────────────────────────────────────
 
 # ──────────────────────────────────────────────────────────────────────
-# - Constants
+# - Variables
 # ──────────────────────────────────────────────────────────────────────
 
-AUTH_TOKEN="DJ_API_AUTH"
+authToken=""
+apiEndpoint="radio.purpleradio.co.uk/api/live-info-v2"
 
 # ──────────────────────────────────────────────────────────────────────     
 # - Core Loop
@@ -22,11 +23,11 @@ while true; do
     # - Get schedule info   
     # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶
 
-    current_timestamp=$(date +"%s")
-    response=$(curl -s --request GET localhost/api/live-info)
+    currentTimestamp=$(date +"%s")
+    response=$(curl -s --request GET "$apiEndpoint")
 
-    next_start=$(date --date="$(echo $response | jq -r ".nextShow[].start_timestamp")" +"%s")
-    length=$(($next_start - $current_timestamp))
+    nextStart=$(date --date="$(echo $response | jq -r ".nextShow[].start_timestamp")" +"%s")
+    length=$(($nextStart - $currentTimestamp))
 	
     # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
     # - Sleep till start of next show
@@ -38,7 +39,7 @@ while true; do
     # - Clear DJ Messages
     # ╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶ 
 
-    curl -X "DELETE" https://api.purpleradio.co.uk/purple-radio/deleteAllMessages/$AUTH_TOKEN
+    curl -X "DELETE" https://api.purpleradio.co.uk/purple-radio/deleteAllMessages/$authToken
 
 done
 
